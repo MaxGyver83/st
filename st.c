@@ -1634,6 +1634,8 @@ tsetmode(int priv, int set, const int *args, int narg)
 				      and can be mistaken for other control
 				      codes. */
 				break;
+			case 7727: /* tmux related!? Don't warn. */
+				break;
 			default:
 				fprintf(stderr,
 					"erresc: unknown private set/reset mode %d\n",
@@ -1675,8 +1677,8 @@ csihandle(void)
 	switch (csiescseq.mode[0]) {
 	default:
 	unknown:
-		fprintf(stderr, "erresc: unknown csi ");
-		csidump();
+		/* fprintf(stderr, "erresc: unknown csi "); */
+		/* csidump(); */
 		/* die(""); */
 		break;
 	case '@': /* ICH -- Insert <n> blank char */
