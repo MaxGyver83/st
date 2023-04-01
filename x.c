@@ -1576,16 +1576,12 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 		if (selected(cx, cy)) {
 			g.fg = defaultfg;
 			g.bg = defaultrcs;
-		} else {
-			/** this is the main part of the dynamic cursor color patch */
+		} else if (!(og.mode & ATTR_REVERSE)) {
+			unsigned long col = g.bg;
 			g.bg = g.fg;
-			g.fg = defaultbg;
+			g.fg = col;
 		}
 
-		/**
-		 * and this is the second part of the dynamic cursor color patch.
-		 * it handles the `drawcol` variable
-		*/
 		if (IS_TRUECOL(g.bg)) {
 			colbg.alpha = 0xffff;
 			colbg.red = TRUERED(g.bg);
