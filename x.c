@@ -1577,9 +1577,17 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 			g.fg = defaultfg;
 			g.bg = defaultrcs;
 		} else if (!(og.mode & ATTR_REVERSE)) {
-			unsigned long col = g.bg;
-			g.bg = g.fg;
-			g.fg = col;
+			// check if foreground and background color are similar
+			// shades of gray
+			if (BETWEEN(g.fg, 232, 255) && BETWEEN(g.bg, 232, 255)
+					&& abs(g.bg - g.fg) <= 2) {
+				g.fg = defaultbg;
+				g.bg = defaultcs;
+			} else {
+				unsigned long col = g.bg;
+				g.bg = g.fg;
+				g.fg = col;
+			}
 		}
 
 		if (IS_TRUECOL(g.bg)) {
