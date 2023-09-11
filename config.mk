@@ -7,8 +7,8 @@ VERSION = 0.9
 PREFIX = /usr/local
 MANPREFIX = $(PREFIX)/share/man
 
-X11INC = /home/max/repos/libxft/include/X11/Xft
-X11LIB = /home/max/repos/libxft/src/.libs
+X11INC = ${HOME}/repos/libxft/include/X11/Xft
+X11LIB = ${HOME}/repos/libxft/src/.libs
 
 PKG_CONFIG = pkg-config
 
