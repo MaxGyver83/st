@@ -63,6 +63,7 @@ static void zoomreset(const Arg *);
 static void ttysend(const Arg *);
 static void nextscheme(const Arg *);
 static void selectscheme(const Arg *);
+static void selectandpaste(const Arg *);
 
 /* config.h for applying patches and the configuration. */
 #include "config.h"
@@ -145,6 +146,8 @@ typedef struct {
 	Font font, bfont, ifont, ibfont;
 	GC gc;
 } DC;
+
+static Arg arg;
 
 static inline ushort sixd_to_16bit(int);
 static int xmakeglyphfontspecs(XftGlyphFontSpec *, const Glyph *, int, int, int);
@@ -292,6 +295,18 @@ selpaste(const Arg *dummy)
 {
 	XConvertSelection(xw.dpy, XA_PRIMARY, xsel.xtarget, XA_PRIMARY,
 			xw.win, CurrentTime);
+}
+
+void
+selectandpaste(const Arg *arg)
+{
+	// paste a space
+	ttywrite(" ", 1, 1);
+	// select word under cursor
+	selstart(evcol(arg->e), evrow(arg->e), SNAP_WORD);
+	xsetsel(getsel());
+	// paste selection
+	selpaste(arg);
 }
 
 void
@@ -466,7 +481,11 @@ mouseaction(XEvent *e, uint release)
 		    (!ms->altscrn || (ms->altscrn == (tisaltscr() ? 1 : -1))) &&
 		    (match(ms->mod, state) ||  /* exact or forced */
 		     match(ms->mod, state & ~forcemousemod))) {
-			ms->func(&(ms->arg));
+			if (ms->func == selectandpaste) {
+				arg.e = e; /* global */
+				ms->func(&arg);
+			} else
+				ms->func(&(ms->arg));
 			return 1;
 		}
 	}

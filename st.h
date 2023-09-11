@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+#include <X11/Xlib.h>
 
 /* macros */
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
@@ -75,6 +76,7 @@ typedef union {
 	float f;
 	const void *v;
 	const char *s;
+	XEvent *e;
 } Arg;
 
 void die(const char *, ...);
