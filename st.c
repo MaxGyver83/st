@@ -162,6 +162,7 @@ typedef struct {
 typedef struct {
 	int state;
 	size_t length;
+	unsigned mask;
 } URLdfa;
 
 static void execsh(char *, char **);
@@ -2825,29 +2826,56 @@ daddch(URLdfa *dfa, char c)
 	static const char URLCHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		"abcdefghijklmnopqrstuvwxyz"
 		"0123456789-._~:/?#@!$&*+,;=%";
-	static const char RPFX[] = "//:sptth";
+
+	/* reversed schemes */
+	static const char *RPFX[] = {
+		"//:sptth",  /* https:// */
+		"//:ptth",   /* http://  */
+		"///:elif",  /* file:/// */
+		"//:elif"    /* file://  */
+	};
+	static const unsigned RPFXLEN[] = { 8, 7, 8, 7 };
+	enum { NPAT = sizeof(RPFX)/sizeof(RPFX[0]) };
+	const unsigned ALL_MASK = (1u << NPAT) - 1;
 
 	if (!strchr(URLCHARS, c)) {
 		dfa->length = 0;
-		dfa->state = 0;
-
+		dfa->state  = 0;
+		dfa->mask   = ALL_MASK;
 		return 0;
 	}
+
+	if (dfa->length == 0)
+		dfa->mask = ALL_MASK;
 
 	dfa->length++;
 
-	if (dfa->state == 2 && c == '/') {
+	unsigned newmask = 0;
+	for (unsigned i = 0; i < NPAT; i++) {
+		if (!(dfa->mask & (1u << i)))
+			continue;
+		if ((unsigned)dfa->state < RPFXLEN[i] && c == RPFX[i][dfa->state])
+			newmask |= (1u << i);
+	}
+
+	if (newmask == 0) {
+		/* not matching prefix, but still valid URL chars -> stay "in" URL */
 		dfa->state = 0;
-	} else if (dfa->state == 3 && c == 'p') {
-		dfa->state++;
-	} else if (c != RPFX[dfa->state]) {
-		dfa->state = 0;
+		dfa->mask  = ALL_MASK;
 		return 0;
 	}
 
-	if (dfa->state++ == 7) {
-		dfa->state = 0;
-		return 1;
+	dfa->mask = newmask;
+	dfa->state++;
+
+	/* When any prefix completes, mark that we found a URL start */
+	for (unsigned i = 0; i < NPAT; i++) {
+		if ((dfa->mask & (1u << i)) && dfa->state == (int)RPFXLEN[i]) {
+			/* Found the start of a URL — keep counting afterwards */
+			dfa->state = 0;
+			dfa->mask  = ALL_MASK;
+			return 1;
+		}
 	}
 
 	return 0;
@@ -2865,7 +2893,7 @@ copyurl(const Arg *arg) {
 
 	const char *c = NULL,
 		 *match = NULL;
-	URLdfa dfa = { 0 };
+	URLdfa dfa = { .state = 0, .length = 0, .mask = (1u<<4)-1 };
 
 	row = (sel.ob.x >= 0 && sel.nb.y > 0) ? sel.nb.y : term.bot;
 	LIMIT(row, term.top, term.bot);
